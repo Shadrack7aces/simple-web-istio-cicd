@@ -1,0 +1,74 @@
+name: Simple Web CI/CD
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+
+  # ==========================
+  # JOB 1 - BUILD AND PUSH
+  # ==========================
+  build:
+    name: Build and Push Docker Image
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build Docker Image
+        run: |
+          docker build \
+            -t 7aces/simple-web:${{ github.sha }} \
+            -t 7aces/simple-web:latest \
+            .
+
+      - name: Push Docker Image
+        run: |
+          docker push 7aces/simple-web:${{ github.sha }}
+          docker push 7aces/simple-web:latest
+
+  # ==========================
+  # JOB 2 - DEPLOY TO KUBERNETES
+  # ==========================
+  deploy:
+    name: Deploy to Kubernetes
+    needs: build
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Check Kubernetes
+        run: |
+          kubectl get nodes
+          kubectl get pods
+
+      - name: Apply Kubernetes Resources
+        run: |
+          kubectl apply -f secret.yaml
+          kubectl apply -f deployment.yaml
+          kubectl apply -f deployment-v2.yaml
+          kubectl apply -f service.yaml
+          kubectl apply -f gateway.yaml
+          kubectl apply -f destination-rule.yaml
+          kubectl apply -f vs.yaml
+
+      - name: Update v2 Image
+        run: |
+          kubectl set image deployment/simple-web-v2 \
+            simple-web=7aces/simple-web:${{ github.sha }}
+
+      - name: Wait for Deployment
+        run: |
+          kubectl rollout status deployment/simple-web-v2
