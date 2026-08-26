@@ -49,7 +49,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Check Kubernetes
+      - name: Check Kubernetes Status
         run: |
           kubectl get nodes
           kubectl get pods
@@ -69,6 +69,17 @@ jobs:
           kubectl set image deployment/simple-web-v2 \
             simple-web=7aces/simple-web:${{ github.sha }}
 
-      - name: Wait for Deployment
+      - name: Wait for Deployment Success
         run: |
           kubectl rollout status deployment/simple-web-v2
+
+      # ==========================
+      # AUTOMATED ROLLBACK ON FAILURE
+      # ==========================
+      - name: Undo Deployment If Rollout Fails
+        if: failure()
+        run: |
+          echo "Deployment failed or timed out! Rolling back to the previous stable version..."
+          kubectl rollout undo deployment/simple-web-v2
+          kubectl rollout status deployment/simple-web-v2
+
