@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: simple-web-v1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: simple-web
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: simple-web
+        version: v1
+    spec:
+      containers:
+      - name: simple-web
+        image: 7aces/simple-web:v1
+        ports:
+        - containerPort: 80

@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: simple-web-pod
+spec:
+  containers:
+  - name: simple-web
+    image: 7aces/simple-web:v1
+    ports:
+    - containerPort: 80
